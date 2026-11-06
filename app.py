@@ -15,8 +15,8 @@ from openpyxl.utils import get_column_letter
 
 app = Flask(__name__, static_folder="static")
 
-# Sur Render, les fichiers éphémères sont ok pour SQLite (ou utiliser /tmp)
-DB = os.path.join(os.path.dirname(__file__), "courses.db")
+# Sur Render on écrit dans /tmp (seul dossier accessible en écriture)
+DB = os.environ.get("DB_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "courses.db"))
 
 
 # ── Base de données ────────────────────────────────────────────────────────────
@@ -184,7 +184,9 @@ def export():
 
 # ── Démarrage ──────────────────────────────────────────────────────────────────
 
+# Init DB au chargement du module (fonctionne avec gunicorn ET py app.py)
+init_db()
+
 if __name__ == "__main__":
-    init_db()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
