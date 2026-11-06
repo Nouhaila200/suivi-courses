@@ -1,13 +1,13 @@
 """
 Application web - Suivi des Courses
-Stockage : SQLite (fonctionne sur Render.com gratuitement)
-Export   : téléchargement du fichier Excel à la demande
+- En local       : SQLite
+- Sur Render     : PostgreSQL (variable d'env DATABASE_URL)
+Export : téléchargement Excel à la demande
 """
 
 import os
 import io
-import sqlite3
-from datetime import datetime, date
+from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory, send_file
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -15,39 +15,109 @@ from openpyxl.utils import get_column_letter
 
 app = Flask(__name__, static_folder="static")
 
-# Sur Render on écrit dans /tmp (seul dossier accessible en écriture)
-DB = os.environ.get("DB_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "courses.db"))
+DATABASE_URL = os.environ.get("DATABASE_URL", "")  # Render injecte cette variable
+
+# ── Couche base de données (SQLite OU PostgreSQL) ──────────────────────────────
+
+if DATABASE_URL:
+    # PostgreSQL sur Render
+    import psycopg2
+    import psycopg2.extras
+
+    def get_db():
+        url = DATABASE_URL
+        # Render donne parfois "postgres://" — psycopg2 veut "postgresql://"
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        return psycopg2.connect(url)
+
+    def init_db():
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS courses (
+                        id        SERIAL PRIMARY KEY,
+                        num       TEXT NOT NULL,
+                        date      TEXT,
+                        depart    TEXT,
+                        arrivee   TEXT,
+                        chauffeur TEXT,
+                        obs       TEXT,
+                        created   TIMESTAMP DEFAULT NOW()
+                    )
+                """)
+            conn.commit()
+
+    def db_fetchall(sql, params=()):
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(sql.replace("?", "%s"), params)
+                return [dict(r) for r in cur.fetchall()]
+
+    def db_execute(sql, params=()):
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql.replace("?", "%s"), params)
+                rowcount = cur.rowcount
+            conn.commit()
+        return rowcount
+
+    def db_fetchone(sql, params=()):
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql.replace("?", "%s"), params)
+                row = cur.fetchone()
+                return row[0] if row else None
+
+else:
+    # SQLite en local
+    import sqlite3
+
+    DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "courses.db")
+
+    def get_db():
+        conn = sqlite3.connect(DB)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def init_db():
+        with get_db() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS courses (
+                    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                    num       TEXT NOT NULL,
+                    date      TEXT,
+                    depart    TEXT,
+                    arrivee   TEXT,
+                    chauffeur TEXT,
+                    obs       TEXT,
+                    created   TEXT DEFAULT (datetime('now'))
+                )
+            """)
+            conn.commit()
+
+    def db_fetchall(sql, params=()):
+        with get_db() as conn:
+            rows = conn.execute(sql, params).fetchall()
+            return [dict(r) for r in rows]
+
+    def db_execute(sql, params=()):
+        with get_db() as conn:
+            cur = conn.execute(sql, params)
+            conn.commit()
+            return cur.rowcount
+
+    def db_fetchone(sql, params=()):
+        with get_db() as conn:
+            row = conn.execute(sql, params).fetchone()
+            return row[0] if row else None
 
 
-# ── Base de données ────────────────────────────────────────────────────────────
-
-def get_db():
-    conn = sqlite3.connect(DB)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def init_db():
-    with get_db() as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS courses (
-                id        INTEGER PRIMARY KEY AUTOINCREMENT,
-                num       TEXT    NOT NULL,
-                date      TEXT,
-                depart    TEXT,
-                arrivee   TEXT,
-                chauffeur TEXT,
-                obs       TEXT,
-                created   TEXT DEFAULT (datetime('now'))
-            )
-        """)
-        conn.commit()
-
+# ── Numérotation ───────────────────────────────────────────────────────────────
 
 def prochain_numero():
-    with get_db() as conn:
-        row = conn.execute("SELECT MAX(CAST(num AS INTEGER)) as m FROM courses").fetchone()
-        return (row["m"] or 0) + 1
+    val = db_fetchone("SELECT MAX(CAST(num AS INTEGER)) FROM courses")
+    return (val or 0) + 1
 
 
 # ── Export Excel ───────────────────────────────────────────────────────────────
@@ -90,20 +160,16 @@ def generer_excel(courses):
     ws = wb.active
     ws.title = "Courses"
     ws.row_dimensions[1].height = 30
-
     for col_idx, (nom, largeur) in enumerate(COLONNES, start=1):
         cell = ws.cell(row=1, column=col_idx, value=nom)
         style_entete(cell)
         ws.column_dimensions[get_column_letter(col_idx)].width = largeur
-
     for row_idx, c in enumerate(courses, start=2):
         pair = (row_idx % 2 == 0)
         ws.row_dimensions[row_idx].height = 20
-        valeurs = [c["num"], c["date"], c["depart"], c["arrivee"], c["chauffeur"], c["obs"]]
-        for col_idx, val in enumerate(valeurs, start=1):
-            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+        for col_idx, key in enumerate(["num","date","depart","arrivee","chauffeur","obs"], start=1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=c.get(key, ""))
             style_ligne(cell, pair)
-
     ws.freeze_panes = "A2"
     buf = io.BytesIO()
     wb.save(buf)
@@ -129,50 +195,43 @@ def ajouter():
     except ValueError:
         date_val = datetime.today().strftime("%d/%m/%Y")
 
-    with get_db() as conn:
-        conn.execute(
-            "INSERT INTO courses (num, date, depart, arrivee, chauffeur, obs) VALUES (?,?,?,?,?,?)",
-            (
-                num,
-                date_val,
-                (data.get("depart")    or "").strip(),
-                (data.get("arrivee")   or "").strip(),
-                (data.get("chauffeur") or "").strip(),
-                (data.get("obs")       or "").strip(),
-            )
+    db_execute(
+        "INSERT INTO courses (num, date, depart, arrivee, chauffeur, obs) VALUES (?,?,?,?,?,?)",
+        (
+            num,
+            date_val,
+            (data.get("depart")    or "").strip(),
+            (data.get("arrivee")   or "").strip(),
+            (data.get("chauffeur") or "").strip(),
+            (data.get("obs")       or "").strip(),
         )
-        conn.commit()
-
+    )
     return jsonify({"ok": True, "num": num})
 
 
 @app.route("/courses")
 def courses():
-    with get_db() as conn:
-        rows = conn.execute(
-            "SELECT num, date, depart, arrivee, chauffeur, obs FROM courses ORDER BY id DESC"
-        ).fetchall()
-    return jsonify([dict(r) for r in rows])
+    rows = db_fetchall(
+        "SELECT num, date, depart, arrivee, chauffeur, obs FROM courses ORDER BY id DESC"
+    )
+    return jsonify(rows)
 
 
 @app.route("/supprimer", methods=["POST"])
 def supprimer():
     num = str((request.json or {}).get("num", "")).strip()
-    with get_db() as conn:
-        cur = conn.execute("DELETE FROM courses WHERE num = ?", (num,))
-        conn.commit()
-    if cur.rowcount:
+    count = db_execute("DELETE FROM courses WHERE num = ?", (num,))
+    if count:
         return jsonify({"ok": True})
     return jsonify({"ok": False, "msg": "Course introuvable"})
 
 
 @app.route("/export")
 def export():
-    with get_db() as conn:
-        rows = conn.execute(
-            "SELECT num, date, depart, arrivee, chauffeur, obs FROM courses ORDER BY id ASC"
-        ).fetchall()
-    buf = generer_excel([dict(r) for r in rows])
+    rows = db_fetchall(
+        "SELECT num, date, depart, arrivee, chauffeur, obs FROM courses ORDER BY id ASC"
+    )
+    buf = generer_excel(rows)
     nom = f"Suivi_Courses_{datetime.today().strftime('%Y%m%d')}.xlsx"
     return send_file(
         buf,
@@ -184,7 +243,6 @@ def export():
 
 # ── Démarrage ──────────────────────────────────────────────────────────────────
 
-# Init DB au chargement du module (fonctionne avec gunicorn ET py app.py)
 init_db()
 
 if __name__ == "__main__":
