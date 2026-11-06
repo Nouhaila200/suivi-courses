@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Suivi des Courses</title>
+  <style>
+    :root {
+      --bleu:  #1F4E79;
+      --bleu2: #2E75B6;
+      --vert:  #1a7a4a;
+      --rouge: #c0392b;
+      --gris:  #f4f6f9;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", Arial, sans-serif; background: var(--gris); min-height: 100vh; }
+
+    /* HEADER */
+    header {
+      background: var(--bleu); color: #fff;
+      padding: 16px 20px 12px; text-align: center;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 3px 10px rgba(0,0,0,.25);
+    }
+    header h1 { font-size: 1.2rem; }
+    header p  { font-size: .78rem; opacity: .75; margin-top: 3px; }
+
+    /* TABS */
+    .tabs { display: flex; background: var(--bleu); border-top: 1px solid rgba(255,255,255,.15); }
+    .tab-btn {
+      flex: 1; padding: 12px 0; border: none;
+      background: transparent; color: rgba(255,255,255,.6);
+      font-size: .9rem; font-weight: 600; cursor: pointer;
+    }
+    .tab-btn.active { background: rgba(255,255,255,.18); color: #fff; border-bottom: 3px solid #fff; }
+
+    /* PANELS */
+    .panel { display: none; padding: 16px 14px 40px; }
+    .panel.active { display: block; }
+
+    /* CARD */
+    .card {
+      background: #fff; border-radius: var(--radius);
+      padding: 20px 16px; box-shadow: 0 2px 12px rgba(0,0,0,.08); margin-bottom: 16px;
+    }
+    .card h2 { color: var(--bleu); font-size: 1rem; margin-bottom: 16px; }
+
+    label {
+      display: block; font-size: .8rem; font-weight: 700;
+      color: #555; margin: 14px 0 5px;
+      text-transform: uppercase; letter-spacing: .4px;
+    }
+    label:first-of-type { margin-top: 0; }
+
+    input, textarea, select {
+      width: 100%; padding: 13px 14px;
+      border: 1.5px solid #dde2ea; border-radius: 10px;
+      font-size: 1rem; background: #fafbfc; color: #222;
+      transition: border .2s; -webkit-appearance: none;
+    }
+    input:focus, textarea:focus {
+      outline: none; border-color: var(--bleu2);
+      box-shadow: 0 0 0 3px rgba(46,117,182,.15); background: #fff;
+    }
+    textarea { resize: vertical; min-height: 65px; }
+
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* BOUTON ENREGISTRER */
+    .btn-save {
+      width: 100%; margin-top: 20px; padding: 15px;
+      background: var(--vert); color: #fff; border: none;
+      border-radius: var(--radius); font-size: 1.05rem; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center;
+      justify-content: center; gap: 10px;
+      box-shadow: 0 4px 14px rgba(26,122,74,.3);
+      transition: opacity .2s, transform .1s;
+    }
+    .btn-save:active { transform: scale(.97); opacity: .9; }
+    .btn-save:disabled { opacity: .6; cursor: not-allowed; }
+
+    /* BOUTON EXPORT */
+    .btn-export {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 13px; margin-top: 0;
+      background: var(--bleu2); color: #fff; border: none;
+      border-radius: var(--radius); font-size: .95rem; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      box-shadow: 0 3px 10px rgba(46,117,182,.3);
+    }
+
+    /* TOAST */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #222; color: #fff;
+      padding: 12px 24px; border-radius: 30px;
+      font-size: .92rem; font-weight: 600;
+      opacity: 0; transition: all .3s ease;
+      z-index: 999; white-space: nowrap; pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.ok   { background: var(--vert); }
+    #toast.err  { background: var(--rouge); }
+
+    /* LISTE */
+    .search-bar { display: flex; gap: 10px; margin-bottom: 14px; }
+    .search-bar input { flex: 1; padding: 11px 14px; }
+    .btn-refresh {
+      padding: 11px 14px; background: var(--bleu2); color: #fff;
+      border: none; border-radius: 10px; font-size: 1.1rem; cursor: pointer;
+    }
+
+    .badge-total {
+      text-align: center; font-size: .82rem; color: #888;
+      margin-bottom: 12px;
+    }
+
+    .course-card {
+      background: #fff; border-radius: var(--radius);
+      padding: 13px 14px; margin-bottom: 10px;
+      box-shadow: 0 1px 8px rgba(0,0,0,.07);
+      position: relative; border-left: 5px solid var(--bleu2);
+    }
+    .course-num { font-size: .75rem; color: var(--bleu2); font-weight: 700; margin-bottom: 5px; }
+    .course-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+    .course-meta { font-size: .83rem; color: #666; display: flex; flex-wrap: wrap; gap: 10px; }
+    .course-obs  { margin-top: 7px; font-size: .82rem; color: #888; font-style: italic; }
+    .btn-del {
+      position: absolute; top: 10px; right: 10px;
+      background: #fdecea; color: var(--rouge);
+      border: none; border-radius: 8px; padding: 5px 9px;
+      font-size: .82rem; cursor: pointer; font-weight: 700;
+    }
+
+    .empty   { text-align: center; color: #aaa; margin-top: 40px; font-size: .95rem; }
+    .loading { text-align: center; color: #aaa; margin-top: 30px; }
+    .hint    { font-size: .73rem; color: #aaa; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🚗 Suivi des Courses</h1>
+  <p>Accessible depuis n'importe où</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('saisie', this)">✏️ Nouvelle</button>
+  <button class="tab-btn"        onclick="switchTab('liste',  this)">📋 Historique</button>
+  <button class="tab-btn"        onclick="switchTab('export', this)">📥 Export</button>
+</div>
+
+<!-- ═══ SAISIE ═══ -->
+<div id="panel-saisie" class="panel active">
+  <div class="card">
+    <h2>📝 Informations de la course</h2>
+
+    <label>N° de la course</label>
+    <input id="f-num" type="text" inputmode="numeric" placeholder="Automatique si vide" />
+    <p class="hint">Laissez vide → numérotation automatique</p>
+
+    <label>Date</label>
+    <input id="f-date" type="date" />
+
+    <div class="row2">
+      <div>
+        <label>Départ</label>
+        <input id="f-depart" type="text" placeholder="Lieu de départ" />
+      </div>
+      <div>
+        <label>Arrivée</label>
+        <input id="f-arrivee" type="text" placeholder="Lieu d'arrivée" />
+      </div>
+    </div>
+
+    <label>N° Chauffeur</label>
+    <input id="f-chauffeur" type="text" inputmode="numeric" placeholder="Numéro du chauffeur" />
+
+    <label>Observation</label>
+    <textarea id="f-obs" placeholder="Remarques, notes..."></textarea>
+
+    <button class="btn-save" onclick="enregistrer()">
+      💾 Enregistrer la course
+    </button>
+  </div>
+</div>
+
+<!-- ═══ LISTE ═══ -->
+<div id="panel-liste" class="panel">
+  <div class="search-bar">
+    <input id="search" type="text" placeholder="🔍 Rechercher..." oninput="filtrer()" />
+    <button class="btn-refresh" onclick="chargerCourses()" title="Actualiser">🔄</button>
+  </div>
+  <div id="badge-total" class="badge-total"></div>
+  <div id="liste-courses"><p class="loading">Chargement...</p></div>
+</div>
+
+<!-- ═══ EXPORT ═══ -->
+<div id="panel-export" class="panel">
+  <div class="card">
+    <h2>📥 Télécharger le fichier Excel</h2>
+    <p style="color:#555; font-size:.9rem; margin-bottom:18px; line-height:1.5">
+      Cliquez sur le bouton ci-dessous pour télécharger toutes les courses dans un fichier Excel
+      prêt à être ouvert sur votre PC.
+    </p>
+    <a class="btn-export" href="/export" download>
+      📊 Télécharger Excel (.xlsx)
+    </a>
+  </div>
+  <div class="card" style="margin-top:0">
+    <h2>ℹ️ Informations</h2>
+    <p style="font-size:.85rem; color:#666; line-height:1.6">
+      • Les données sont sauvegardées en ligne<br>
+      • Accessibles depuis n'importe quel téléphone ou PC<br>
+      • L'export génère le fichier Excel à jour à l'instant du téléchargement
+    </p>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("f-date").value = today;
+
+  let allCourses = [];
+
+  function switchTab(name, btn) {
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("panel-" + name).classList.add("active");
+    btn.classList.add("active");
+    if (name === "liste") chargerCourses();
+  }
+
+  function toast(msg, type = "ok", duration = 3500) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = "show " + type;
+    setTimeout(() => { t.className = ""; }, duration);
+  }
+
+  async function enregistrer() {
+    const btn       = document.querySelector(".btn-save");
+    const depart    = document.getElementById("f-depart").value.trim();
+    const arrivee   = document.getElementById("f-arrivee").value.trim();
+    const chauffeur = document.getElementById("f-chauffeur").value.trim();
+
+    if (!depart || !arrivee || !chauffeur) {
+      toast("⚠️ Départ, Arrivée et N° Chauffeur sont obligatoires", "err");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Enregistrement...";
+
+    try {
+      const res = await fetch("/ajouter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          num:       document.getElementById("f-num").value.trim(),
+          date:      document.getElementById("f-date").value,
+          depart, arrivee, chauffeur,
+          obs:       document.getElementById("f-obs").value.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast("✅ Course n°" + data.num + " enregistrée !", "ok");
+        document.getElementById("f-num").value       = "";
+        document.getElementById("f-date").value      = today;
+        document.getElementById("f-depart").value    = "";
+        document.getElementById("f-arrivee").value   = "";
+        document.getElementById("f-chauffeur").value = "";
+        document.getElementById("f-obs").value       = "";
+      } else {
+        toast("❌ " + (data.msg || "Erreur"), "err");
+      }
+    } catch (e) {
+      toast("❌ Connexion impossible au serveur", "err");
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = "💾 Enregistrer la course";
+  }
+
+  async function chargerCourses() {
+    document.getElementById("liste-courses").innerHTML = '<p class="loading">⏳ Chargement...</p>';
+    document.getElementById("badge-total").textContent = "";
+    try {
+      const res = await fetch("/courses");
+      allCourses = await res.json();
+      afficherCourses(allCourses);
+    } catch (e) {
+      document.getElementById("liste-courses").innerHTML = '<p class="empty">❌ Impossible de charger</p>';
+    }
+  }
+
+  function afficherCourses(courses) {
+    const el = document.getElementById("liste-courses");
+    const badge = document.getElementById("badge-total");
+    badge.textContent = courses.length
+      ? `${courses.length} course${courses.length > 1 ? "s" : ""} trouvée${courses.length > 1 ? "s" : ""}`
+      : "";
+    if (!courses.length) {
+      el.innerHTML = '<p class="empty">Aucune course enregistrée</p>';
+      return;
+    }
+    el.innerHTML = courses.map(c => `
+      <div class="course-card">
+        <button class="btn-del" onclick="supprimer('${c.num}')">🗑</button>
+        <div class="course-num">Course n°${c.num}</div>
+        <div class="course-title">📍 ${c.depart || "—"} → ${c.arrivee || "—"}</div>
+        <div class="course-meta">
+          <span>📅 ${c.date || "—"}</span>
+          <span>🧑‍✈️ Chauf. n°${c.chauffeur || "—"}</span>
+        </div>
+        ${c.obs ? `<div class="course-obs">💬 ${c.obs}</div>` : ""}
+      </div>
+    `).join("");
+  }
+
+  function filtrer() {
+    const q = document.getElementById("search").value.toLowerCase();
+    afficherCourses(allCourses.filter(c =>
+      Object.values(c).some(v => String(v).toLowerCase().includes(q))
+    ));
+  }
+
+  async function supprimer(num) {
+    if (!confirm("Supprimer la course n°" + num + " ?")) return;
+    try {
+      const res = await fetch("/supprimer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ num }),
+      });
+      const data = await res.json();
+      if (data.ok) { toast("🗑 Course n°" + num + " supprimée", "ok"); chargerCourses(); }
+      else toast("❌ " + (data.msg || "Erreur"), "err");
+    } catch (e) { toast("❌ Connexion impossible", "err"); }
+  }
+</script>
+</body>
+</html>
