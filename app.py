@@ -31,6 +31,7 @@ if DATABASE_URL:
     def init_db():
         with get_db() as conn:
             with conn.cursor() as cur:
+                # Créer la table si elle n'existe pas
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS courses (
                         id          SERIAL PRIMARY KEY,
@@ -45,6 +46,21 @@ if DATABASE_URL:
                         created     TIMESTAMP DEFAULT NOW()
                     )
                 """)
+                # Migration : renommer num → num_resa si l'ancienne colonne existe
+                cur.execute("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name='courses' AND column_name='num'
+                """)
+                if cur.fetchone():
+                    cur.execute("ALTER TABLE courses RENAME COLUMN num TO num_resa")
+                # Ajouter les nouvelles colonnes si elles n'existent pas
+                for col, typ in [("heure_dep","TEXT"),("heure_arr","TEXT")]:
+                    cur.execute("""
+                        SELECT column_name FROM information_schema.columns
+                        WHERE table_name='courses' AND column_name=%s
+                    """, (col,))
+                    if not cur.fetchone():
+                        cur.execute(f"ALTER TABLE courses ADD COLUMN {col} {typ}")
             conn.commit()
 
     def db_fetchall(sql, params=()):
