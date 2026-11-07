@@ -256,6 +256,14 @@ def supprimer():
     return jsonify({"ok": False, "msg": "Course introuvable"})
 
 
+@app.route("/admin/data")
+def admin_data():
+    rows = db_fetchall(
+        "SELECT id, num_resa, date, heure_dep, heure_arr, depart, arrivee, chauffeur, obs, created FROM courses ORDER BY id ASC"
+    )
+    return jsonify({"total": len(rows), "rows": rows})
+
+
 @app.route("/export")
 def export():
     rows = db_fetchall(

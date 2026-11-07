@@ -306,6 +306,7 @@
   <button class="tab-btn active" onclick="switchTab('saisie', this)">🎫 Nouvelle</button>
   <button class="tab-btn"        onclick="switchTab('liste',  this)">📋 Courses</button>
   <button class="tab-btn"        onclick="switchTab('export', this)">📥 Export</button>
+  <button class="tab-btn"        onclick="switchTab('admin',  this)">🔧 Admin</button>
 </div>
 
 <!-- ═══ SAISIE ═══ -->
@@ -380,6 +381,26 @@
       • Accessible depuis n'importe quel téléphone ou PC<br>
       • Export Excel disponible à tout moment
     </p>
+  </div>
+</div>
+
+<!-- ═══ ADMIN ═══ -->
+<div id="panel-admin" class="panel">
+  <div class="card">
+    <div class="card-title">🔧 Base de données — Table courses</div>
+    <p style="font-size:.83rem;color:#666;margin-bottom:14px">
+      Vue complète de toutes les données enregistrées.
+    </p>
+    <button class="btn-export" style="margin-bottom:16px;border:none;cursor:pointer" onclick="chargerAdmin()">🔄 Actualiser</button>
+    <div id="admin-stats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px"></div>
+    <div style="overflow-x:auto">
+      <table id="admin-table" style="width:100%;border-collapse:collapse;font-size:.75rem;display:none;min-width:600px">
+        <thead><tr id="admin-thead" style="background:var(--rouge);color:#fff"></tr></thead>
+        <tbody id="admin-tbody"></tbody>
+      </table>
+    </div>
+    <p id="admin-empty" class="empty" style="display:none">Aucune donnée</p>
+    <p id="admin-loading" class="loading">Cliquez sur Actualiser pour charger</p>
   </div>
 </div>
 
@@ -514,6 +535,57 @@
     afficherCourses(allCourses.filter(c =>
       Object.values(c).some(v => String(v).toLowerCase().includes(q))
     ));
+  }
+
+  async function chargerAdmin() {
+    const loading = document.getElementById("admin-loading");
+    const empty   = document.getElementById("admin-empty");
+    const table   = document.getElementById("admin-table");
+    const stats   = document.getElementById("admin-stats");
+
+    loading.style.display = "block";
+    empty.style.display   = "none";
+    table.style.display   = "none";
+    stats.innerHTML       = "";
+
+    try {
+      const res  = await fetch("/admin/data");
+      const data = await res.json();
+
+      loading.style.display = "none";
+
+      // Stats
+      stats.innerHTML = `
+        <div style="background:var(--rouge);color:#fff;padding:8px 14px;border-radius:8px;font-size:.82rem;font-weight:700">
+          📊 ${data.total} course${data.total > 1 ? "s" : ""}
+        </div>
+        <div style="background:var(--noir);color:#fff;padding:8px 14px;border-radius:8px;font-size:.82rem;font-weight:700">
+          🗄️ Table : courses
+        </div>
+      `;
+
+      if (!data.rows || !data.rows.length) {
+        empty.style.display = "block";
+        return;
+      }
+
+      // En-têtes
+      const cols = Object.keys(data.rows[0]);
+      document.getElementById("admin-thead").innerHTML = cols.map(c =>
+        `<th style="padding:8px 10px;text-align:left;white-space:nowrap;font-weight:700">${c}</th>`
+      ).join("");
+
+      // Lignes
+      document.getElementById("admin-tbody").innerHTML = data.rows.map((row, i) =>
+        `<tr style="background:${i%2===0?"#f9f9f9":"#fff"}">
+          ${cols.map(c => `<td style="padding:7px 10px;border-bottom:1px solid #eee;white-space:nowrap">${row[c] ?? ""}</td>`).join("")}
+        </tr>`
+      ).join("");
+
+      table.style.display = "table";
+    } catch (e) {
+      loading.textContent = "❌ Impossible de charger";
+    }
   }
 
   async function supprimer(num) {
