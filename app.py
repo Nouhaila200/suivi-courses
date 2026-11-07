@@ -1,8 +1,7 @@
 """
-Application web - Suivi des Courses
-- En local       : SQLite
-- Sur Render     : PostgreSQL (variable d'env DATABASE_URL)
-Export : téléchargement Excel à la demande
+Application web - Suivi des Courses (style SNCF)
+- En local   : SQLite
+- Sur Render : PostgreSQL (variable DATABASE_URL)
 """
 
 import os
@@ -15,18 +14,16 @@ from openpyxl.utils import get_column_letter
 
 app = Flask(__name__, static_folder="static")
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "")  # Render injecte cette variable
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
-# ── Couche base de données (SQLite OU PostgreSQL) ──────────────────────────────
+# ── Base de données ────────────────────────────────────────────────────────────
 
 if DATABASE_URL:
-    # PostgreSQL sur Render
     import psycopg2
     import psycopg2.extras
 
     def get_db():
         url = DATABASE_URL
-        # Render donne parfois "postgres://" — psycopg2 veut "postgresql://"
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql://", 1)
         return psycopg2.connect(url)
@@ -36,14 +33,16 @@ if DATABASE_URL:
             with conn.cursor() as cur:
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS courses (
-                        id        SERIAL PRIMARY KEY,
-                        num       TEXT NOT NULL,
-                        date      TEXT,
-                        depart    TEXT,
-                        arrivee   TEXT,
-                        chauffeur TEXT,
-                        obs       TEXT,
-                        created   TIMESTAMP DEFAULT NOW()
+                        id          SERIAL PRIMARY KEY,
+                        num_resa    TEXT NOT NULL,
+                        date        TEXT,
+                        heure_dep   TEXT,
+                        heure_arr   TEXT,
+                        depart      TEXT,
+                        arrivee     TEXT,
+                        chauffeur   TEXT,
+                        obs         TEXT,
+                        created     TIMESTAMP DEFAULT NOW()
                     )
                 """)
             conn.commit()
@@ -70,7 +69,6 @@ if DATABASE_URL:
                 return row[0] if row else None
 
 else:
-    # SQLite en local
     import sqlite3
 
     DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "courses.db")
@@ -84,14 +82,16 @@ else:
         with get_db() as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS courses (
-                    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-                    num       TEXT NOT NULL,
-                    date      TEXT,
-                    depart    TEXT,
-                    arrivee   TEXT,
-                    chauffeur TEXT,
-                    obs       TEXT,
-                    created   TEXT DEFAULT (datetime('now'))
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    num_resa    TEXT NOT NULL,
+                    date        TEXT,
+                    heure_dep   TEXT,
+                    heure_arr   TEXT,
+                    depart      TEXT,
+                    arrivee     TEXT,
+                    chauffeur   TEXT,
+                    obs         TEXT,
+                    created     TEXT DEFAULT (datetime('now'))
                 )
             """)
             conn.commit()
@@ -113,45 +113,47 @@ else:
             return row[0] if row else None
 
 
-# ── Numérotation ───────────────────────────────────────────────────────────────
+# ── Numérotation automatique ───────────────────────────────────────────────────
 
 def prochain_numero():
-    val = db_fetchone("SELECT MAX(CAST(num AS INTEGER)) FROM courses")
+    val = db_fetchone("SELECT MAX(CAST(num_resa AS INTEGER)) FROM courses")
     return (val or 0) + 1
 
 
 # ── Export Excel ───────────────────────────────────────────────────────────────
 
 COLONNES = [
-    ("N° Course",    12),
-    ("Date",         14),
-    ("Départ",       20),
-    ("Arrivée",      20),
-    ("N° Chauffeur", 14),
-    ("Observation",  35),
+    ("N° Réservation", 16),
+    ("Date",           13),
+    ("Départ",         22),
+    ("Heure Départ",   13),
+    ("Arrivée",        22),
+    ("Heure Arrivée",  13),
+    ("N° Chauffeur",   14),
+    ("Observation",    35),
 ]
 
 
 def style_entete(cell):
-    cell.font      = Font(name="Calibri", bold=True, color="FFFFFF", size=12)
-    cell.fill      = PatternFill("solid", fgColor="1F4E79")
+    cell.font      = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
+    cell.fill      = PatternFill("solid", fgColor="CC0000")   # Rouge SNCF
     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
     cell.border    = Border(
-        left=Side(style="thin", color="FFFFFF"),
-        right=Side(style="thin", color="FFFFFF"),
+        left=Side(style="thin",   color="FFFFFF"),
+        right=Side(style="thin",  color="FFFFFF"),
         bottom=Side(style="medium", color="FFFFFF"),
     )
 
 
 def style_ligne(cell, pair):
-    cell.font      = Font(name="Calibri", size=11)
-    cell.fill      = PatternFill("solid", fgColor="DDEEFF" if pair else "FFFFFF")
+    cell.font      = Font(name="Calibri", size=10)
+    cell.fill      = PatternFill("solid", fgColor="F5F5F5" if pair else "FFFFFF")
     cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
     cell.border    = Border(
-        left=Side(style="thin",   color="CCCCCC"),
-        right=Side(style="thin",  color="CCCCCC"),
-        top=Side(style="thin",    color="CCCCCC"),
-        bottom=Side(style="thin", color="CCCCCC"),
+        left=Side(style="thin",   color="DDDDDD"),
+        right=Side(style="thin",  color="DDDDDD"),
+        top=Side(style="thin",    color="DDDDDD"),
+        bottom=Side(style="thin", color="DDDDDD"),
     )
 
 
@@ -159,16 +161,26 @@ def generer_excel(courses):
     wb = Workbook()
     ws = wb.active
     ws.title = "Courses"
-    ws.row_dimensions[1].height = 30
+    ws.row_dimensions[1].height = 28
     for col_idx, (nom, largeur) in enumerate(COLONNES, start=1):
         cell = ws.cell(row=1, column=col_idx, value=nom)
         style_entete(cell)
         ws.column_dimensions[get_column_letter(col_idx)].width = largeur
     for row_idx, c in enumerate(courses, start=2):
         pair = (row_idx % 2 == 0)
-        ws.row_dimensions[row_idx].height = 20
-        for col_idx, key in enumerate(["num","date","depart","arrivee","chauffeur","obs"], start=1):
-            cell = ws.cell(row=row_idx, column=col_idx, value=c.get(key, ""))
+        ws.row_dimensions[row_idx].height = 18
+        vals = [
+            c.get("num_resa", ""),
+            c.get("date", ""),
+            c.get("depart", ""),
+            c.get("heure_dep", ""),
+            c.get("arrivee", ""),
+            c.get("heure_arr", ""),
+            c.get("chauffeur", ""),
+            c.get("obs", ""),
+        ]
+        for col_idx, val in enumerate(vals, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
             style_ligne(cell, pair)
     ws.freeze_panes = "A2"
     buf = io.BytesIO()
@@ -186,8 +198,8 @@ def index():
 
 @app.route("/ajouter", methods=["POST"])
 def ajouter():
-    data = request.json or {}
-    num  = (data.get("num") or "").strip() or str(prochain_numero())
+    data     = request.json or {}
+    num_resa = (data.get("num_resa") or "").strip() or str(prochain_numero())
 
     date_str = (data.get("date") or "").strip()
     try:
@@ -196,23 +208,25 @@ def ajouter():
         date_val = datetime.today().strftime("%d/%m/%Y")
 
     db_execute(
-        "INSERT INTO courses (num, date, depart, arrivee, chauffeur, obs) VALUES (?,?,?,?,?,?)",
+        "INSERT INTO courses (num_resa,date,heure_dep,heure_arr,depart,arrivee,chauffeur,obs) VALUES (?,?,?,?,?,?,?,?)",
         (
-            num,
+            num_resa,
             date_val,
-            (data.get("depart")    or "").strip(),
-            (data.get("arrivee")   or "").strip(),
-            (data.get("chauffeur") or "").strip(),
-            (data.get("obs")       or "").strip(),
+            (data.get("heure_dep")  or "").strip(),
+            (data.get("heure_arr")  or "").strip(),
+            (data.get("depart")     or "").strip(),
+            (data.get("arrivee")    or "").strip(),
+            (data.get("chauffeur")  or "").strip(),
+            (data.get("obs")        or "").strip(),
         )
     )
-    return jsonify({"ok": True, "num": num})
+    return jsonify({"ok": True, "num": num_resa})
 
 
 @app.route("/courses")
 def courses():
     rows = db_fetchall(
-        "SELECT num, date, depart, arrivee, chauffeur, obs FROM courses ORDER BY id DESC"
+        "SELECT num_resa,date,heure_dep,heure_arr,depart,arrivee,chauffeur,obs FROM courses ORDER BY id DESC"
     )
     return jsonify(rows)
 
@@ -220,7 +234,7 @@ def courses():
 @app.route("/supprimer", methods=["POST"])
 def supprimer():
     num = str((request.json or {}).get("num", "")).strip()
-    count = db_execute("DELETE FROM courses WHERE num = ?", (num,))
+    count = db_execute("DELETE FROM courses WHERE num_resa = ?", (num,))
     if count:
         return jsonify({"ok": True})
     return jsonify({"ok": False, "msg": "Course introuvable"})
@@ -229,7 +243,7 @@ def supprimer():
 @app.route("/export")
 def export():
     rows = db_fetchall(
-        "SELECT num, date, depart, arrivee, chauffeur, obs FROM courses ORDER BY id ASC"
+        "SELECT num_resa,date,heure_dep,heure_arr,depart,arrivee,chauffeur,obs FROM courses ORDER BY id ASC"
     )
     buf = generer_excel(rows)
     nom = f"Suivi_Courses_{datetime.today().strftime('%Y%m%d')}.xlsx"

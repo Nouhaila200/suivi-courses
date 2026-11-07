@@ -6,174 +6,339 @@
   <title>Suivi des Courses</title>
   <style>
     :root {
-      --bleu:  #1F4E79;
-      --bleu2: #2E75B6;
-      --vert:  #1a7a4a;
-      --rouge: #c0392b;
-      --gris:  #f4f6f9;
-      --radius: 14px;
+      --rouge:    #CC0000;
+      --rouge2:   #E30000;
+      --gris1:    #F7F7F7;
+      --gris2:    #EBEBEB;
+      --gris3:    #9E9E9E;
+      --noir:     #1A1A1A;
+      --blanc:    #FFFFFF;
+      --radius:   12px;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Segoe UI", Arial, sans-serif; background: var(--gris); min-height: 100vh; }
 
-    /* HEADER */
+    body {
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      background: var(--gris1);
+      color: var(--noir);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER SNCF ── */
     header {
-      background: var(--bleu); color: #fff;
-      padding: 16px 20px 12px; text-align: center;
-      position: sticky; top: 0; z-index: 100;
-      box-shadow: 0 3px 10px rgba(0,0,0,.25);
+      background: var(--rouge);
+      color: var(--blanc);
+      padding: 0;
     }
-    header h1 { font-size: 1.2rem; }
-    header p  { font-size: .78rem; opacity: .75; margin-top: 3px; }
+    .header-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px 10px;
+    }
+    .sncf-logo {
+      background: var(--blanc);
+      color: var(--rouge);
+      font-weight: 900;
+      font-size: 1rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+      flex-shrink: 0;
+    }
+    .header-title h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .3px; }
+    .header-title p  { font-size: .75rem; opacity: .85; margin-top: 1px; }
 
-    /* TABS */
-    .tabs { display: flex; background: var(--bleu); border-top: 1px solid rgba(255,255,255,.15); }
+    /* bande grise en bas du header */
+    .header-band {
+      background: rgba(0,0,0,.15);
+      height: 4px;
+    }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      background: var(--noir);
+    }
     .tab-btn {
-      flex: 1; padding: 12px 0; border: none;
-      background: transparent; color: rgba(255,255,255,.6);
-      font-size: .9rem; font-weight: 600; cursor: pointer;
+      flex: 1; padding: 13px 0;
+      border: none; background: transparent;
+      color: rgba(255,255,255,.55);
+      font-size: .88rem; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+      border-bottom: 3px solid transparent;
     }
-    .tab-btn.active { background: rgba(255,255,255,.18); color: #fff; border-bottom: 3px solid #fff; }
+    .tab-btn.active {
+      color: var(--blanc);
+      border-bottom: 3px solid var(--rouge);
+      background: rgba(255,255,255,.06);
+    }
 
-    /* PANELS */
-    .panel { display: none; padding: 16px 14px 40px; }
+    /* ── PANELS ── */
+    .panel { display: none; padding: 16px 14px 50px; }
     .panel.active { display: block; }
 
-    /* CARD */
+    /* ── CARTE ── */
     .card {
-      background: #fff; border-radius: var(--radius);
-      padding: 20px 16px; box-shadow: 0 2px 12px rgba(0,0,0,.08); margin-bottom: 16px;
+      background: var(--blanc);
+      border-radius: var(--radius);
+      padding: 20px 16px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.09);
+      margin-bottom: 14px;
     }
-    .card h2 { color: var(--bleu); font-size: 1rem; margin-bottom: 16px; }
+    .card-title {
+      font-size: .95rem; font-weight: 700;
+      color: var(--rouge); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 2px solid var(--rouge);
+      padding-bottom: 10px;
+    }
 
+    /* ── FORMULAIRE ── */
     label {
-      display: block; font-size: .8rem; font-weight: 700;
-      color: #555; margin: 14px 0 5px;
-      text-transform: uppercase; letter-spacing: .4px;
+      display: block;
+      font-size: .75rem; font-weight: 700;
+      color: var(--gris3); margin: 14px 0 5px;
+      text-transform: uppercase; letter-spacing: .6px;
     }
     label:first-of-type { margin-top: 0; }
 
-    input, textarea, select {
-      width: 100%; padding: 13px 14px;
-      border: 1.5px solid #dde2ea; border-radius: 10px;
-      font-size: 1rem; background: #fafbfc; color: #222;
-      transition: border .2s; -webkit-appearance: none;
+    input, textarea {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid var(--gris2);
+      border-radius: 8px;
+      font-size: .98rem; background: var(--gris1);
+      color: var(--noir); transition: border .2s;
+      -webkit-appearance: none;
     }
     input:focus, textarea:focus {
-      outline: none; border-color: var(--bleu2);
-      box-shadow: 0 0 0 3px rgba(46,117,182,.15); background: #fff;
+      outline: none;
+      border-color: var(--rouge);
+      background: var(--blanc);
+      box-shadow: 0 0 0 3px rgba(204,0,0,.1);
     }
-    textarea { resize: vertical; min-height: 65px; }
+    textarea { resize: vertical; min-height: 60px; }
 
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-    /* BOUTON ENREGISTRER */
+    /* ── TICKET style SNCF ── */
+    .ticket-preview {
+      background: var(--gris1);
+      border: 1.5px solid var(--gris2);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .ticket-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 12px;
+    }
+    .ticket-resa {
+      font-size: .72rem; color: var(--gris3); font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .ticket-date-badge {
+      background: var(--rouge); color: var(--blanc);
+      font-size: .72rem; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px;
+    }
+    .ticket-trajet {
+      display: flex; align-items: center; gap: 8px;
+      margin: 8px 0;
+    }
+    .ticket-ville {
+      flex: 1; text-align: center;
+    }
+    .ticket-ville .heure {
+      font-size: 1.5rem; font-weight: 800; color: var(--noir);
+      line-height: 1;
+    }
+    .ticket-ville .ville {
+      font-size: .8rem; color: var(--gris3); margin-top: 2px;
+    }
+    .ticket-fleche {
+      flex: 0; color: var(--rouge); font-size: 1.3rem;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .ticket-fleche .ligne {
+      width: 40px; height: 2px; background: var(--rouge);
+    }
+
+    /* ── BOUTON ENREGISTRER ── */
     .btn-save {
-      width: 100%; margin-top: 20px; padding: 15px;
-      background: var(--vert); color: #fff; border: none;
-      border-radius: var(--radius); font-size: 1.05rem; font-weight: 700;
-      cursor: pointer; display: flex; align-items: center;
-      justify-content: center; gap: 10px;
-      box-shadow: 0 4px 14px rgba(26,122,74,.3);
-      transition: opacity .2s, transform .1s;
+      width: 100%; margin-top: 18px; padding: 15px;
+      background: var(--rouge); color: var(--blanc);
+      border: none; border-radius: var(--radius);
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: background .2s, transform .1s;
+      letter-spacing: .3px;
     }
-    .btn-save:active { transform: scale(.97); opacity: .9; }
-    .btn-save:disabled { opacity: .6; cursor: not-allowed; }
+    .btn-save:hover   { background: var(--rouge2); }
+    .btn-save:active  { transform: scale(.97); }
+    .btn-save:disabled { opacity: .55; cursor: not-allowed; }
 
-    /* BOUTON EXPORT */
+    /* ── BOUTON EXPORT ── */
     .btn-export {
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      width: 100%; padding: 13px; margin-top: 0;
-      background: var(--bleu2); color: #fff; border: none;
-      border-radius: var(--radius); font-size: .95rem; font-weight: 600;
-      cursor: pointer; text-decoration: none;
-      box-shadow: 0 3px 10px rgba(46,117,182,.3);
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 14px;
+      background: var(--noir); color: var(--blanc);
+      border: none; border-radius: var(--radius);
+      font-size: .95rem; font-weight: 700; cursor: pointer;
+      text-decoration: none; letter-spacing: .3px;
     }
 
-    /* TOAST */
+    /* ── TOAST ── */
     #toast {
-      position: fixed; bottom: 28px; left: 50%;
+      position: fixed; bottom: 26px; left: 50%;
       transform: translateX(-50%) translateY(80px);
-      background: #222; color: #fff;
+      background: var(--noir); color: var(--blanc);
       padding: 12px 24px; border-radius: 30px;
-      font-size: .92rem; font-weight: 600;
+      font-size: .9rem; font-weight: 600;
       opacity: 0; transition: all .3s ease;
       z-index: 999; white-space: nowrap; pointer-events: none;
     }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    #toast.ok   { background: var(--vert); }
+    #toast.ok   { background: #1a7a4a; }
     #toast.err  { background: var(--rouge); }
 
-    /* LISTE */
-    .search-bar { display: flex; gap: 10px; margin-bottom: 14px; }
-    .search-bar input { flex: 1; padding: 11px 14px; }
+    /* ── LISTE ── */
+    .search-bar { display: flex; gap: 10px; margin-bottom: 12px; }
+    .search-bar input { flex: 1; }
     .btn-refresh {
-      padding: 11px 14px; background: var(--bleu2); color: #fff;
-      border: none; border-radius: 10px; font-size: 1.1rem; cursor: pointer;
+      padding: 12px 14px; background: var(--noir); color: var(--blanc);
+      border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer;
     }
 
     .badge-total {
-      text-align: center; font-size: .82rem; color: #888;
-      margin-bottom: 12px;
+      text-align: center; font-size: .8rem; color: var(--gris3);
+      margin-bottom: 12px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .5px;
     }
 
+    /* ── CARTE COURSE (style billet SNCF) ── */
     .course-card {
-      background: #fff; border-radius: var(--radius);
-      padding: 13px 14px; margin-bottom: 10px;
-      box-shadow: 0 1px 8px rgba(0,0,0,.07);
-      position: relative; border-left: 5px solid var(--bleu2);
+      background: var(--blanc);
+      border-radius: var(--radius);
+      margin-bottom: 10px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.08);
+      overflow: hidden;
+      position: relative;
     }
-    .course-num { font-size: .75rem; color: var(--bleu2); font-weight: 700; margin-bottom: 5px; }
-    .course-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
-    .course-meta { font-size: .83rem; color: #666; display: flex; flex-wrap: wrap; gap: 10px; }
-    .course-obs  { margin-top: 7px; font-size: .82rem; color: #888; font-style: italic; }
+    .course-card-header {
+      background: var(--rouge);
+      color: var(--blanc);
+      padding: 8px 14px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .course-card-header .num {
+      font-size: .78rem; font-weight: 700; letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+    .course-card-header .date-badge {
+      font-size: .78rem; font-weight: 700;
+      background: rgba(255,255,255,.2);
+      padding: 2px 8px; border-radius: 10px;
+    }
+    .course-card-body { padding: 12px 14px; }
+    .trajet-line {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .trajet-line .ville-bloc { flex: 1; }
+    .trajet-line .ville-bloc .h {
+      font-size: 1.3rem; font-weight: 800; line-height: 1; color: var(--noir);
+    }
+    .trajet-line .ville-bloc .v {
+      font-size: .8rem; color: var(--gris3); margin-top: 1px;
+    }
+    .trajet-arrow {
+      color: var(--rouge); font-size: .9rem;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .trajet-arrow .arr-line {
+      width: 32px; height: 2px; background: var(--rouge);
+    }
+    .course-meta {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      font-size: .8rem; color: var(--gris3);
+      border-top: 1px solid var(--gris2); padding-top: 8px;
+    }
+    .course-meta span { display: flex; align-items: center; gap: 4px; }
+    .course-obs {
+      font-size: .8rem; color: var(--gris3); font-style: italic;
+      margin-top: 6px;
+    }
     .btn-del {
-      position: absolute; top: 10px; right: 10px;
-      background: #fdecea; color: var(--rouge);
-      border: none; border-radius: 8px; padding: 5px 9px;
-      font-size: .82rem; cursor: pointer; font-weight: 700;
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(255,255,255,.25); color: var(--blanc);
+      border: none; border-radius: 6px;
+      padding: 4px 8px; font-size: .8rem; cursor: pointer; font-weight: 700;
     }
 
-    .empty   { text-align: center; color: #aaa; margin-top: 40px; font-size: .95rem; }
-    .loading { text-align: center; color: #aaa; margin-top: 30px; }
-    .hint    { font-size: .73rem; color: #aaa; margin-top: 4px; }
+    .empty   { text-align: center; color: var(--gris3); margin-top: 40px; font-size: .95rem; }
+    .loading { text-align: center; color: var(--gris3); margin-top: 30px; }
+    .hint    { font-size: .72rem; color: var(--gris3); margin-top: 4px; }
+
+    /* Séparateur tirets billet */
+    .tiret-sep {
+      border: none;
+      border-top: 2px dashed var(--gris2);
+      margin: 14px 0;
+    }
   </style>
 </head>
 <body>
 
+<!-- HEADER SNCF -->
 <header>
-  <h1>🚗 Suivi des Courses</h1>
-  <p>Accessible depuis n'importe où</p>
+  <div class="header-top">
+    <div class="sncf-logo">SNCF</div>
+    <div class="header-title">
+      <h1>Suivi des Courses</h1>
+      <p>Gestion des réservations</p>
+    </div>
+  </div>
+  <div class="header-band"></div>
 </header>
 
 <div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('saisie', this)">✏️ Nouvelle</button>
-  <button class="tab-btn"        onclick="switchTab('liste',  this)">📋 Historique</button>
+  <button class="tab-btn active" onclick="switchTab('saisie', this)">🎫 Nouvelle</button>
+  <button class="tab-btn"        onclick="switchTab('liste',  this)">📋 Courses</button>
   <button class="tab-btn"        onclick="switchTab('export', this)">📥 Export</button>
 </div>
 
 <!-- ═══ SAISIE ═══ -->
 <div id="panel-saisie" class="panel active">
   <div class="card">
-    <h2>📝 Informations de la course</h2>
+    <div class="card-title">🎫 Nouvelle réservation</div>
 
-    <label>N° de la course</label>
+    <label>N° de réservation</label>
     <input id="f-num" type="text" inputmode="numeric" placeholder="Automatique si vide" />
-    <p class="hint">Laissez vide → numérotation automatique</p>
+    <p class="hint">Laissez vide → numéro automatique</p>
 
-    <label>Date</label>
+    <label>Date du trajet</label>
     <input id="f-date" type="date" />
 
-    <div class="row2">
-      <div>
-        <label>Départ</label>
-        <input id="f-depart" type="text" placeholder="Lieu de départ" />
-      </div>
-      <div>
-        <label>Arrivée</label>
-        <input id="f-arrivee" type="text" placeholder="Lieu d'arrivée" />
-      </div>
-    </div>
+    <hr class="tiret-sep" />
+
+    <!-- Départ -->
+    <label>Gare / Lieu de départ</label>
+    <input id="f-depart" type="text" placeholder="Ex : Paris Gare de Lyon" />
+
+    <label>Heure de départ</label>
+    <input id="f-heure-dep" type="time" />
+
+    <hr class="tiret-sep" />
+
+    <!-- Arrivée -->
+    <label>Gare / Lieu d'arrivée</label>
+    <input id="f-arrivee" type="text" placeholder="Ex : Lyon Part-Dieu" />
+
+    <label>Heure d'arrivée</label>
+    <input id="f-heure-arr" type="time" />
+
+    <hr class="tiret-sep" />
 
     <label>N° Chauffeur</label>
     <input id="f-chauffeur" type="text" inputmode="numeric" placeholder="Numéro du chauffeur" />
@@ -182,7 +347,7 @@
     <textarea id="f-obs" placeholder="Remarques, notes..."></textarea>
 
     <button class="btn-save" onclick="enregistrer()">
-      💾 Enregistrer la course
+      🎫 Enregistrer la réservation
     </button>
   </div>
 </div>
@@ -191,7 +356,7 @@
 <div id="panel-liste" class="panel">
   <div class="search-bar">
     <input id="search" type="text" placeholder="🔍 Rechercher..." oninput="filtrer()" />
-    <button class="btn-refresh" onclick="chargerCourses()" title="Actualiser">🔄</button>
+    <button class="btn-refresh" onclick="chargerCourses()">🔄</button>
   </div>
   <div id="badge-total" class="badge-total"></div>
   <div id="liste-courses"><p class="loading">Chargement...</p></div>
@@ -200,21 +365,20 @@
 <!-- ═══ EXPORT ═══ -->
 <div id="panel-export" class="panel">
   <div class="card">
-    <h2>📥 Télécharger le fichier Excel</h2>
-    <p style="color:#555; font-size:.9rem; margin-bottom:18px; line-height:1.5">
-      Cliquez sur le bouton ci-dessous pour télécharger toutes les courses dans un fichier Excel
-      prêt à être ouvert sur votre PC.
+    <div class="card-title">📥 Télécharger le fichier Excel</div>
+    <p style="font-size:.88rem; color:#666; line-height:1.6; margin-bottom:18px">
+      Cliquez pour télécharger toutes les courses dans un fichier Excel prêt à ouvrir sur PC.
     </p>
     <a class="btn-export" href="/export" download>
       📊 Télécharger Excel (.xlsx)
     </a>
   </div>
-  <div class="card" style="margin-top:0">
-    <h2>ℹ️ Informations</h2>
-    <p style="font-size:.85rem; color:#666; line-height:1.6">
-      • Les données sont sauvegardées en ligne<br>
-      • Accessibles depuis n'importe quel téléphone ou PC<br>
-      • L'export génère le fichier Excel à jour à l'instant du téléchargement
+  <div class="card">
+    <div class="card-title">ℹ️ Informations</div>
+    <p style="font-size:.83rem; color:#666; line-height:1.7">
+      • Données sauvegardées en ligne<br>
+      • Accessible depuis n'importe quel téléphone ou PC<br>
+      • Export Excel disponible à tout moment
     </p>
   </div>
 </div>
@@ -235,11 +399,11 @@
     if (name === "liste") chargerCourses();
   }
 
-  function toast(msg, type = "ok", duration = 3500) {
+  function toast(msg, type = "ok") {
     const t = document.getElementById("toast");
     t.textContent = msg;
     t.className = "show " + type;
-    setTimeout(() => { t.className = ""; }, duration);
+    setTimeout(() => { t.className = ""; }, 3500);
   }
 
   async function enregistrer() {
@@ -261,17 +425,21 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          num:       document.getElementById("f-num").value.trim(),
+          num_resa:  document.getElementById("f-num").value.trim(),
           date:      document.getElementById("f-date").value,
+          heure_dep: document.getElementById("f-heure-dep").value,
+          heure_arr: document.getElementById("f-heure-arr").value,
           depart, arrivee, chauffeur,
-          obs:       document.getElementById("f-obs").value.trim(),
+          obs: document.getElementById("f-obs").value.trim(),
         }),
       });
       const data = await res.json();
       if (data.ok) {
-        toast("✅ Course n°" + data.num + " enregistrée !", "ok");
+        toast("✅ Réservation n°" + data.num + " enregistrée !", "ok");
         document.getElementById("f-num").value       = "";
         document.getElementById("f-date").value      = today;
+        document.getElementById("f-heure-dep").value = "";
+        document.getElementById("f-heure-arr").value = "";
         document.getElementById("f-depart").value    = "";
         document.getElementById("f-arrivee").value   = "";
         document.getElementById("f-chauffeur").value = "";
@@ -284,7 +452,7 @@
     }
 
     btn.disabled = false;
-    btn.innerHTML = "💾 Enregistrer la course";
+    btn.innerHTML = "🎫 Enregistrer la réservation";
   }
 
   async function chargerCourses() {
@@ -300,10 +468,10 @@
   }
 
   function afficherCourses(courses) {
-    const el = document.getElementById("liste-courses");
+    const el    = document.getElementById("liste-courses");
     const badge = document.getElementById("badge-total");
     badge.textContent = courses.length
-      ? `${courses.length} course${courses.length > 1 ? "s" : ""} trouvée${courses.length > 1 ? "s" : ""}`
+      ? `${courses.length} réservation${courses.length > 1 ? "s" : ""}`
       : "";
     if (!courses.length) {
       el.innerHTML = '<p class="empty">Aucune course enregistrée</p>';
@@ -311,14 +479,32 @@
     }
     el.innerHTML = courses.map(c => `
       <div class="course-card">
-        <button class="btn-del" onclick="supprimer('${c.num}')">🗑</button>
-        <div class="course-num">Course n°${c.num}</div>
-        <div class="course-title">📍 ${c.depart || "—"} → ${c.arrivee || "—"}</div>
-        <div class="course-meta">
-          <span>📅 ${c.date || "—"}</span>
-          <span>🧑‍✈️ Chauf. n°${c.chauffeur || "—"}</span>
+        <div class="course-card-header">
+          <span class="num">Résa n°${c.num_resa}</span>
+          <span class="date-badge">📅 ${c.date || "—"}</span>
+          <button class="btn-del" onclick="supprimer('${c.num_resa}')">✕</button>
         </div>
-        ${c.obs ? `<div class="course-obs">💬 ${c.obs}</div>` : ""}
+        <div class="course-card-body">
+          <div class="trajet-line">
+            <div class="ville-bloc">
+              <div class="h">${c.heure_dep || "--:--"}</div>
+              <div class="v">${c.depart || "—"}</div>
+            </div>
+            <div class="trajet-arrow">
+              <div class="arr-line"></div>
+              ▶
+              <div class="arr-line"></div>
+            </div>
+            <div class="ville-bloc" style="text-align:right">
+              <div class="h">${c.heure_arr || "--:--"}</div>
+              <div class="v">${c.arrivee || "—"}</div>
+            </div>
+          </div>
+          <div class="course-meta">
+            <span>🧑‍✈️ Chauf. n°${c.chauffeur || "—"}</span>
+          </div>
+          ${c.obs ? `<div class="course-obs">💬 ${c.obs}</div>` : ""}
+        </div>
       </div>
     `).join("");
   }
@@ -331,7 +517,7 @@
   }
 
   async function supprimer(num) {
-    if (!confirm("Supprimer la course n°" + num + " ?")) return;
+    if (!confirm("Supprimer la réservation n°" + num + " ?")) return;
     try {
       const res = await fetch("/supprimer", {
         method: "POST",
@@ -339,7 +525,7 @@
         body: JSON.stringify({ num }),
       });
       const data = await res.json();
-      if (data.ok) { toast("🗑 Course n°" + num + " supprimée", "ok"); chargerCourses(); }
+      if (data.ok) { toast("🗑 Réservation n°" + num + " supprimée", "ok"); chargerCourses(); }
       else toast("❌ " + (data.msg || "Erreur"), "err");
     } catch (e) { toast("❌ Connexion impossible", "err"); }
   }
